@@ -3,6 +3,28 @@ import { useState } from 'react';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBUCDM2ODJd7XhuFgjPLxl_qd_6vYRYJa8",
+  authDomain: "todolist-7f82d.firebaseapp.com",
+  projectId: "todolist-7f82d",
+  storageBucket: "todolist-7f82d.appspot.com",
+  messagingSenderId: "247254804140",
+  appId: "1:247254804140:web:be8e4ac4d4bd4fd2dde109",
+  measurementId: "G-172R1QY3WS"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
 let todoItemId = 0;
 
 const TodoItemInputField = (props) => {
