@@ -1,6 +1,9 @@
 import './App.css';
 import { useEffect, useState } from 'react';
 import TextField from '@mui/material/TextField';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 
 // Import the functions you need from the SDKs you need
@@ -16,7 +19,15 @@ import {
   getDocs,
   query,
   orderBy,
+  where,
 } from "firebase/firestore";
+import {
+  GoogleAuthProvider,
+  getAuth,
+  signInWithRedirect,
+  onAuthStateChanged,
+  signOut,
+} from "firebase/auth";
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -36,8 +47,10 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-
 const db = getFirestore(app);
+
+const provider = new GoogleAuthProvider();
+const auth = getAuth(app);
 
 const TodoItemInputField = (props) => {
   const [input, setInput] = useState("");
@@ -80,12 +93,47 @@ const TodoItemList = (props) => {
   </div>);
 };
 
+const TodoListAppBar = (props) => {
+  const loginWithGoogleButton = (
+    <Button color="inherit" onClick={() => {
+      signInWithRedirect(auth, provider);
+    }}>Login with Google</Button>
+  );
+  const logoutButton = (
+    <Button color="inherit" onClick={() => {
+      signOut(auth);
+    }}>Log out</Button>
+  );
+  const button = props.currentUser === null ? loginWithGoogleButton : logoutButton;
+  return (
+    <AppBar position="static">
+      <Toolbar>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          Todo List App
+        </Typography>
+        <Typography variant="h7" component="h7" sx={{ flexGrow: 6 }}>
+          Made by haramy
+        </Typography>
+        {button}
+      </Toolbar>
+    </AppBar>
+  );
+};
+
 function App() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [todoItemList, setTodoItemList] = useState([]);
 
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      setCurrentUser(user.uid);
+    } else {
+      setCurrentUser(null);
+    }
+  });
+
   const syncTodoItemListStateWithFirestore = () => {
-    const q = query(collection(db, "todoItem"), orderBy("createdTime", "desc"));
-    
+    const q = query(collection(db, "todoItem"), where("userId", "==", currentUser), orderBy("createdTime", "desc"));
     getDocs(q).then((querySnapshot) => {
       const firestoreTodoItemList = [];
       querySnapshot.forEach((doc) => {
@@ -94,6 +142,7 @@ function App() {
           todoItemContent: doc.data().todoItemContent,
           isFinished: doc.data().isFinished,
           createdTime: doc.data().createdTime ?? 0,
+          userId: doc.data().userId,
         });
       });
       setTodoItemList(firestoreTodoItemList);
@@ -102,12 +151,13 @@ function App() {
 
   useEffect(() => {
     syncTodoItemListStateWithFirestore();
-  }, []);
+  }, [currentUser]);
   const onSubmit = async (newTodoItem) => {
     await addDoc(collection(db, "todoItem"), {
       todoItemContent: newTodoItem,
       isFinished: false,
       createdTime: Math.floor(Date.now() / 1000),
+      userId: currentUser,
     });
     syncTodoItemListStateWithFirestore();
   };
@@ -126,6 +176,7 @@ function App() {
 
   return (
     <div className="App">
+      <TodoListAppBar currentUser={currentUser} />
       <TodoItemInputField onSubmit={onSubmit} />
       <TodoItemList
         todoItemList={todoItemList}
